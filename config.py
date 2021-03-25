@@ -1,19 +1,7 @@
-# some training parameters
-EPOCHS = 50
-BATCH_SIZE = 8
-NUM_CLASSES = 5
-image_height = 100
-image_width = 100
-channels = 3
-save_model_dir = "saved_model/model"
-dataset_dir = "dataset/"
-train_dir = dataset_dir + "train"
-valid_dir = dataset_dir + "valid"
-test_dir = dataset_dir + "test"
 
-# choose a network
-# model = "resnet18"
-# model = "resnet34"
-model = "resnet50"
-# model = "resnet101"
-# model = "resnet152"
+output_num = 72
+
+batch_size = 64
+epoch = 40
+input_size = (100, 100)
+
