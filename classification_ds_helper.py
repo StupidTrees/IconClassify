@@ -1,7 +1,24 @@
 import pathlib
 import random
-
 import tensorflow as tf
+import cv2
+import numpy as np
+
+
+def alpha2white_opencv2(img):
+    sp = img.shape
+    width = sp[0]
+    height = sp[1]
+    if sp[2] == 3:
+        return img
+    for yh in range(height):
+        for xw in range(width):
+            color_d = img[xw, yh]
+            if color_d[3] == 0:
+                img[xw, yh] = [255, 255, 255, 255]
+    r, g, b, a = cv2.split(img)
+    img = cv2.merge([r, g, b])
+    return img
 
 
 def getImageClassificationDataset(path, size, batch=10, repeat=False, channels=3):
@@ -22,18 +39,25 @@ def getImageClassificationDataset(path, size, batch=10, repeat=False, channels=3
 
     # 写载入图片并规范化的函数
     def load_and_preprocess_image(path):
-        image = tf.io.read_file(path)  # 读入图片文件
-        image = tf.image.decode_png(contents=image, channels=1)
-        image = tf.image.resize(image, size)  # 把图片规范化为192*192*3
-        image /= 255.0  # normalize to [0,1] range  # 把数值范围规范到0~1
-        return image
+        image = cv2.imread(path, cv2.IMREAD_UNCHANGED)  # 读入图片文件
+        image = cv2.resize(image, size)  # 把图片规范化为192*192*1x
+        image = alpha2white_opencv2(image)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = np.expand_dims(gray, axis=2)
+        ts = tf.convert_to_tensor(gray, dtype=float)
+        ts /= 255.0  # normalize to [0,1] range  # 把数值范围规范到0~1
+        return ts
 
     # 将上述资源封装为Tensorflow的Datasets
 
     # 创建路径的数据集
-    path_ds = tf.data.Dataset.from_tensor_slices(all_image_paths)
+    # path_ds = tf.data.Dataset.from_tensor_slices(all_image_paths)
     # 使用map将路径集经函数load_and_prosess_image映射到图片数据集image_ds，第一个参数传入的是函数
-    image_ds = path_ds.map(load_and_preprocess_image)  # , num_parallel_calls=AUTOTUNE)
+    # image_ds = path_ds.map(load_and_preprocess_image)  # , num_parallel_calls=AUTOTUNE)
+
+    tensors = [load_and_preprocess_image(p) for p in all_image_paths]
+    image_ds = tf.data.Dataset.from_tensor_slices(tensors)
+
     # 同样用该函数可以创建标签数据集
     label_ds = tf.data.Dataset.from_tensor_slices(tf.cast(all_image_labels, tf.int64))
     # 二者可以打包，成为图片-标签数据集
